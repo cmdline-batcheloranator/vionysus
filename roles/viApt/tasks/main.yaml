@@ -1,0 +1,78 @@
+---
+- name: install packages
+  become: yes
+  apt:
+    pkg:
+      - build-essential
+      - cmake
+      - python-dev
+      - python3-dev 
+      - mono-complete
+      - golang
+      - git
+      - curl
+      - node 
+      - nodejs
+      - npm
+      - ctags
+      - screen
+      - yamllint
+      - vim-nox
+    state: installed
+
+- name: copy vimrc
+  copy:
+    src: .vimrc
+    dest: ~/.vimrc
+
+- name: create plugin dirs
+  file:
+    path: "{{item}}"
+    state: directory
+  with_items:
+    - ~/.vim/autoload
+    - ~/.vim/bundle
+    - ~/ycm_build
+
+- name: copy pathogen.vim
+  copy:
+    src: pathogen.vim
+    dest: ~/.vim/autoload
+
+- name: install vi plugins
+  git:
+    repo: "https://github.com/{{item.name}}/{{item.dest}}.git"
+    dest: "~/.vim/bundle/{{item.dest}}"
+  with_items:
+    - {name: "junegunn", dest: "fzf"}
+    - {name: "majutsushi", dest: "tagbar"}
+    - {name: "ternjs", dest: "tern_for_vim"}
+    - {name: "scrooloose", dest: "nerdtree"}
+    - {name: "Raimondi", dest: "delimitMate"}
+    - {name: "Valloric", dest: "YouCompleteMe"}
+    - {name: "vim-syntastic", dest: "syntastic"}
+    - {name: "vim-airline", dest: "vim-airline"}
+    - {name: "python-mode", dest: "python-mode"}
+    - {name: "rafi", dest: "awesome-vim-colorschemes"}
+
+- name: start ycm setup
+  shell: >
+    python3 ~/.vim/bundle/YouCompleteMe/install.py --all || echo 0
+
+- name: start ternjs setup
+  shell: >
+    cd ~/.vim/bundle/tern_for_vim
+    npm install
+
+- name: start python-mode setup
+  shell: >
+    cd ~/.vim/bundle/python-mode
+    git submodule update --init --recursive
+
+- name: get plugins
+  shell: ls ~/.vim/bundle
+  register: plugins
+
+- debug:
+    var: plugins.stdout_lines
+...

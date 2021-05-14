@@ -1,0 +1,85 @@
+---
+- name: install packages
+  become: yes
+  yum:
+    pkg:
+      - epel-release
+      - git
+      - curl
+      - nodejs
+      - ctags
+      - cmake
+      - screen
+      - yamllint
+      - python-devel
+      - centos-release-scl-rh
+    state: installed
+
+- name: add repo for devtoolset-6
+  become: yes
+  shell: "yum-config-manager --enable rhel-server-rhscl-7-rpms"
+
+- name: install devtoolset-6
+  become: yes
+  yum:
+    pkg: devtoolset-6
+    state: installed
+
+- name: copy vimrc
+  copy:
+    src: .vimrc
+    dest: ~/.vimrc
+
+- name: create plugin dirs
+  file:
+    path: "{{item}}"
+    state: directory
+  with_items:
+    - ~/.vim/autoload
+    - ~/.vim/bundle
+    - ~/ycm_build
+
+- name: copy pathogen.vim
+  copy:
+    src: pathogen.vim
+    dest: ~/.vim/autoload
+
+- name: install vi plugins
+  git:
+    repo: "https://github.com/{{item.name}}/{{item.dest}}.git"
+    dest: "~/.vim/bundle/{{item.dest}}"
+  with_items:
+    - {name: "junegunn", dest: "fzf"}
+    - {name: "majutsushi", dest: "tagbar"}
+    - {name: "ternjs", dest: "tern_for_vim"}
+    - {name: "scrooloose", dest: "nerdtree"}
+    - {name: "Raimondi", dest: "delimitMate"}
+    - {name: "Valloric", dest: "YouCompleteMe"}
+    - {name: "vim-syntastic", dest: "syntastic"}
+    - {name: "vim-airline", dest: "vim-airline"}
+    - {name: "python-mode", dest: "python-mode"}
+    - {name: "rafi", dest: "awesome-vim-colorschemes"}
+
+- name: update vi to 8
+  script: getVim8.sh
+
+- name: start ycm setup
+  script: ycm.sh
+
+- name: start ternjs setup
+  shell: >
+    cd ~/.vim/bundle/tern_for_vim
+    npm install
+
+- name: star python-mode setup
+  shell: >
+    cd ~/.vim/bundle/python-mode
+    git submodule update --init --recursive
+
+- name: get plugins
+  shell: ls ~/.vim/bundle
+  register: plugins
+
+- debug:
+    var: plugins.stdout_lines
+...
